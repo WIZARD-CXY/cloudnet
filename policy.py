@@ -82,14 +82,14 @@ class AdaptivePolicy(object):
         # [REPLACE WITH YOUR CODE]
         minRes=0x7fffffff
         minName='s'
-        
+                
         for key in self.utilization.keys():
             if self.utilization[key] < minRes:
-               minName=key
-               minRes=self.utilization[key]
+                minName=key
+                minRes=self.utilization[key]
         
         return minName
-
+    
     def redistribute(self):
         # we're installing flows by destination, so sort by received
         stats = []
@@ -181,6 +181,22 @@ class StaticPolicy(object):
         #   (Hint: to find a the VLAN, use topo.getVlanCore(vlanId))
 
         # [ADD YOUR CODE HERE]
+        for edge in topo.edgeSwitches.values():
+            routingTable[edge.dpid]=[]
+            for h in topo.hosts.values():
+                if h.name in edge.neighbors:
+                   outport=topo.ports[edge.name][h.name]
+                else:
+                   vlanId=h.vlans[0]
+                   core=topo.getVlanCore(vlanId)
+                   outport=topo.ports[edge.name][core]
+                
+                routingTable[edge.dpid].append({
+                    'eth_dst' : h.eth,
+                    'output' : [outport],
+                    'priority' : 2,
+                    'type' : 'dst'
+                })
 
         return flood.add_arpflood(routingTable, topo)
 
@@ -194,7 +210,7 @@ class DefaultPolicy(object):
         # use only one core switch
         core = topo.coreSwitches.keys()[0]
         coreDpid = topo.coreSwitches[core].dpid
-
+        
         routingTable[coreDpid] = []
 
         # create rules for packets from core -> edge (downward)
